@@ -32,3 +32,7 @@ Only F-01 credential collection/redaction, F-02 structured output sanitization, 
 ## A01 recovery — 2026-11-27
 
 Reverified approved refs, prior CI attempt, prepared tree 6b94d77950a8312db56f09ff6a81b593176b2ff8 and all seven changed blobs; 39 original files unchanged. No SEC-01 branch/run. Continue original 23-path scope, complete documentation/workflow and focused pre-CI review; first and only SEC-01 run. No main/backup mutations.
+
+## A01 terminal checkpoint — 2026-11-27
+
+Candidate 11e1e296f99f11674a4874cb78f9f4fa9f9e6d08; tree fa1429b1427f6ae587d114972a49908e212dd4fb. Exact 23 paths verified; original tests/dependencies/spec unchanged. Run 45932259275 attempt 1 terminal failure solely on original known non-target cases. All four jobs frozen install/typecheck/build/staging/integrity PASS. Original 90/128 PASS, focused 80/80 PASS; 170/208 PASS total; all 16 targeted original security executions PASS and no new regression. Exact 22/32 per job not met: Linux22 and Windows20 passed 23/32 (known concurrent add race test 14 passed intermittently, F-06 remains OPEN). SEC-01_TARGET_ACCEPTANCE_PASS; EXACT_COUNT_GATE_NOT_MET; formal closure pending owner reconciliation. See project/SEC-01-EVIDENCE.md for job IDs and exact failure sets. No source patch or rerun; evidence-only follow-up. No main merge or backup sync. Full runtime FAIL; production NO-GO.
