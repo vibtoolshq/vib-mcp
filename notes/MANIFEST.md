@@ -5,4 +5,6 @@ a note is added, renamed, or completed.
 
 | File | Phase / Status | Description |
 | ---- | -------------- | ----------- |
-| (none yet) | — | No notes recorded yet. |
+| `2026-11-27-baseline-01.md` | BASELINE-01 / documentation freeze | Scope, audit results, publication gates and next-phase pointer. |
+| `README.md` | Active | Notes purpose and rules. |
+| `MANIFEST.md` | Active | This index. |

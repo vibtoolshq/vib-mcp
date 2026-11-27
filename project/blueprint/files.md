@@ -7,6 +7,7 @@ Every file in the repository, where it lives, and what it is for.
 | File | Purpose |
 | ---- | ------- |
 | `package.json` | Project metadata (`vib-mcp-client@1.0.0`, ESM, MIT). Scripts: `dev` (tsx), `typecheck` (tsc --noEmit), `build` (node build.mjs). Runtime dep: `@modelcontextprotocol/sdk`. Dev deps: typescript, esbuild, tsx, @types/node. |
+| `package-lock.json` | npm lockfile v3; exact dependency resolutions and integrity metadata. |
 | `tsconfig.json` | TypeScript config for `npm run typecheck`. |
 | `build.mjs` | esbuild bundler producing `dist/.vib-mcp/vib-mcp.mjs` and copying config templates. |
 | `.gitignore` | Ignores `node_modules/`, `dist/`, `.env`, `.vib-mcp/.env`, `*.log`, `.DS_Store`. |
@@ -47,6 +48,8 @@ modify it without explicit user instruction after the forensic audit.
 
 | Path | Purpose |
 | ---- | ------- |
+| `project/BASELINE.md` | Immutable audited source inventory and resume contract. |
+| `project/FORENSIC-FINDINGS.md` | Static findings and outstanding verification gates. |
 | `project/MISSION.md` | Mission, boundaries, workflow, guardrails. |
 | `project/SPEC.md` | Locked user-facing contract. |
 | `project/RELEASE.md` | Release governance. |
@@ -55,7 +58,7 @@ modify it without explicit user instruction after the forensic audit.
 
 ## `notes/` — dev-time notes (see `notes/MANIFEST.md`)
 
-Scratch planning and phase logs written before/during changes.
+Scratch planning and phase logs written before/during changes. Initial freeze note: [BASELINE-01](../../notes/2026-11-27-baseline-01.md). See the folder manifest for individual notes.
 
 ## `docs/` — end-user documentation (see `docs/MANIFEST.md`)
 

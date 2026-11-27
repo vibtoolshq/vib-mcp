@@ -8,6 +8,8 @@ contract, architecture blueprint, planning, feature details, and change logs.
 
 | File / Folder | Purpose |
 | ------------- | ------- |
+| `BASELINE.md` | BASELINE-01 frozen source identity, implementation state, evidence, acceptance gates and resume rules. |
+| `FORENSIC-FINDINGS.md` | Open static findings, unverified gates and proposed next phase. |
 | `MISSION.md` | Project identity, mission, boundaries, workflow, and engineering guardrails. Read before architectural changes (mandatory per `AGENTS.md`). |
 | `SPEC.md` | The locked user-facing contract: configuration, CLI commands, flags, security, and exit codes. Read before any behavioral change (mandatory per `AGENTS.md`). |
 | `RELEASE.md` | Release folder structure, versioning rules, and the pre-release gate. Read before release-related work (mandatory per `AGENTS.md`). |

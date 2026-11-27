@@ -1,5 +1,7 @@
 # Repository Agent Rules
 
+- **Resume checkpoint:** Before a new development phase, read [`project/BASELINE.md`](project/BASELINE.md) and [`project/FORENSIC-FINDINGS.md`](project/FORENSIC-FINDINGS.md). Verify the canonical and backup Git trees and any newer accepted phase evidence. A documentation freeze is not a release sign-off.
+
 - **Mandatory:** Read [`project/MISSION.md`](project/MISSION.md) and
   [`project/SPEC.md`](project/SPEC.md) before making any architectural or code
   changes.

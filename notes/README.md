@@ -26,4 +26,6 @@ for notes, planning, and markdown written while developing.
 - After implementation: confirm what landed and link to the related
   `project/` documentation update.
 
+Start with [BASELINE-01 phase note](2026-11-27-baseline-01.md) for the initial freeze plan and evidence boundaries; the authoritative baseline is [project/BASELINE.md](../project/BASELINE.md).
+
 See `MANIFEST.md` for the list of notes in this folder.
