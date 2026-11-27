@@ -1,6 +1,6 @@
 # CLI Commands Reference
 
-Verified against `src/cli.ts` and `project/SPEC.md` on 2026-11-26.
+Verified against `src/cli.ts` and `project/SPEC.md` on 2026-11-27 (SEC-01 candidate static review; see project evidence for runtime acceptance).
 
 Invoke the portable client as:
 
@@ -37,7 +37,7 @@ Lists configured servers. No arguments or options allowed.
 - `--json`: array of `{ name, type, target, auth }`.
 - Empty config prints `No servers configured.`
 
-Uses `loadServerDefinitions` — does **not** interpolate `.env` or connect.
+Uses local server definitions; no MCP connection. Known credential context is collected from sibling `.env` and configured references before validation.
 
 ### `add <name> <url> [--type http|sse] [--token-env VAR_NAME]`
 
@@ -101,6 +101,7 @@ Internally tries `client.ping` first; if the server returns JSON-RPC `-32601`
 
 ## Security notes
 
-- Tokens and `.env` values are never printed. All output paths pass through
-  `maskSecrets`.
+- Known configured credentials, including short values and supported encoded variants, are masked. JSON values and dynamic keys are sanitized before serialization; fixed contract keys and primitive types are preserved. Key collisions fail closed.
+- Tool output is sanitized before truncation. Unknown remote secrets or credentials embedded in arbitrary arguments cannot be inferred reliably; do not put secrets in command arguments or arbitrary URL paths.
+- Stdio child stderr is suppressed so raw diagnostics cannot bypass the CLI output boundary.
 - `add --token-env` stores only the variable name.

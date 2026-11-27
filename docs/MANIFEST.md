@@ -5,7 +5,7 @@ verified against the current code.
 
 | File | Status | Description |
 | ---- | ------ | ----------- |
-| `cli-commands.md` | Verified 2026-11-26 | Command/flag/output/exit-code reference. |
-| `configuration.md` | Verified 2026-11-26 | `servers.json`, `.env`, transports, auth. |
+| `cli-commands.md` | 2026-11-27 (SEC-01 candidate review) | Command/flag/output/exit-code reference. |
+| `configuration.md` | 2026-11-27 (SEC-01 candidate review) | `servers.json`, `.env`, transports, auth. |
 | `README.md` | Active | Folder purpose and rules. |
 | `MANIFEST.md` | Active | This index. |

@@ -1,0 +1,58 @@
+name: SEC-01
+on:
+  push:
+    branches: ['fix/sec-01']
+    paths: ['.github/workflows/sec01-ci.yml', 'src/config.ts', 'src/cli.ts', 'src/client.ts', 'tests/security/**']
+permissions:
+  contents: read
+jobs:
+  security:
+    name: SEC-01 (${{ matrix.os }}, Node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: ['20', '22']
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ matrix.node }}
+      - name: SEC scope preflight
+        id: preflight
+        run: node tests/security/preflight.mjs
+      - name: Toolchain evidence
+        run: |
+          node -p "JSON.stringify({os:process.platform,arch:process.arch,node:process.version})"
+          npm --version
+          git --version
+      - name: Frozen install
+        id: install
+        run: npm ci --no-audit --no-fund
+      - name: Typecheck
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run typecheck
+      - name: Build
+        id: build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run build
+      - name: Staging allowlist
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: node tests/baseline/helpers.mjs stage
+      - name: Original 32 regression tests (retain failures)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: node --test --test-concurrency=1 tests/baseline/cli.test.mjs tests/baseline/config.test.mjs tests/baseline/transport.test.mjs tests/baseline/security.test.mjs
+      - name: Focused SEC-01 acceptance
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: node --test --test-concurrency=1 tests/security/sec01.test.mjs
+      - name: Tracked integrity
+        if: ${{ !cancelled() && steps.preflight.outcome == 'success' }}
+        run: node tests/baseline/helpers.mjs integrity

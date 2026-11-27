@@ -182,7 +182,7 @@ export function parseEnvFile(envPath: string): Record<string, string> {
     return {};
   }
 
-  const values: Record<string, string> = {};
+  const values: Record<string, string> = Object.create(null) as Record<string, string>;
   const content = readFileSync(envPath, "utf8").replace(/^\uFEFF/, "");
 
   for (const rawLine of content.split(/\r?\n/)) {
@@ -239,14 +239,14 @@ export function interpolateEnv(
   return value.replace(
     /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g,
     (_match, variable: string) => {
-      const resolvedValue = envMap[variable] ?? process.env[variable];
+      const resolvedValue = Object.hasOwn(envMap, variable) ? envMap[variable] : process.env[variable];
       if (resolvedValue === undefined || resolvedValue === "") {
         throw new Error(
           `Missing required environment variable: ${variable}. Add it to .vib-mcp/.env or set it in the process environment.`,
         );
       }
 
-      collectedSecrets.add(resolvedValue);
+      addSecret(collectedSecrets, resolvedValue);
       return resolvedValue;
     },
   );
@@ -346,13 +346,108 @@ export function removeServer(name: string, customConfigPath?: string): boolean {
   return true;
 }
 
-export function maskSecrets(text: string, secrets: string[]): string {
-  const maskableSecrets = [
-    ...new Set(secrets.filter((secret) => secret.length >= 4)),
-  ].sort((left, right) => right.length - left.length);
+// Security context is collected before validation or interpolation can fail.
+// Only known local credentials are redacted; arbitrary remote secrets cannot be inferred.
+export function addSecret(secrets: Set<string>, value: string): void {
+  if (!value) return;
+  secrets.add(value);
+  try {
+    const decoded = decodeURIComponent(value);
+    if (decoded) secrets.add(decoded);
+    const encoded = encodeURIComponent(value);
+    secrets.add(encoded);
+    secrets.add(encoded.replace(/%[0-9A-F]{2}/g, (hex) => hex.toLowerCase()));
+    secrets.add(new URLSearchParams([["v", value]]).toString().slice(2));
+  } catch {
+    // Keep the original even for malformed percent escapes or Unicode.
+  }
+  const escaped = JSON.stringify(value).slice(1, -1);
+  if (escaped) secrets.add(escaped);
+}
 
-  return maskableSecrets.reduce(
-    (masked, secret) => masked.split(secret).join("***REDACTED***"),
-    text,
-  );
+export function collectUrlSecrets(url: string, secrets: Set<string>): void {
+  try {
+    const target = new URL(url);
+    addSecret(secrets, target.username);
+    addSecret(secrets, target.password);
+    for (const [key, value] of target.searchParams) {
+      if (/token|secret|key|auth|password|credential|signature|session/i.test(key)) {
+        addSecret(secrets, value);
+      }
+    }
+  } catch {
+    // Invalid URLs are reported without reflecting their raw value.
+  }
+}
+
+function collectValue(value: string, env: Record<string, string>, secrets: Set<string>): void {
+  let missing = false;
+  const resolved = value.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (reference, key: string) => {
+    const found = Object.hasOwn(env, key) ? env[key] : process.env[key];
+    if (!found) {
+      missing = true;
+      return reference;
+    }
+    addSecret(secrets, found);
+    return found;
+  });
+  if (!missing) addSecret(secrets, resolved);
+  const auth = /^(?:Bearer|Basic)\s+(.+)$/i.exec(resolved);
+  if (auth && !missing) addSecret(secrets, auth[1]);
+}
+
+export function collectConfigSecrets(customConfigPath?: string): string[] {
+  const { configPath, envPath } = resolveConfigPaths(customConfigPath);
+  const env = parseEnvFile(envPath);
+  const secrets = new Set<string>();
+  for (const value of Object.values(env)) addSecret(secrets, value);
+  if (!existsSync(configPath)) return [...secrets];
+  const raw = readFileSync(configPath, "utf8");
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    // Never include unparsed contents in diagnostics.
+    return [...secrets];
+  }
+  if (isRecord(parsed) && isRecord(parsed.servers)) {
+    for (const server of Object.values(parsed.servers)) {
+      if (!isRecord(server)) continue;
+      for (const fields of [server.headers, server.env]) {
+        if (!isRecord(fields)) continue;
+        for (const value of Object.values(fields)) {
+          if (typeof value === "string") collectValue(value, env, secrets);
+        }
+      }
+      if (typeof server.url === "string") collectUrlSecrets(server.url, secrets);
+    }
+  }
+  return [...secrets];
+}
+
+export function maskSecrets(text: string, secrets: string[]): string {
+  const candidates = [...new Set(secrets.filter(Boolean))].sort((a, b) => b.length - a.length);
+  if (!candidates.length || !text) return text;
+  const marker = ["***REDACTED***", "[masked]", "…", ""].find(
+    (candidate) => candidates.every((secret) => !candidate.includes(secret)),
+  ) ?? "";
+  // Replace original spans once, longest first at the same position. Never
+  // feed inserted markers back through the matcher.
+  let offset = 0;
+  let result = "";
+  while (offset < text.length) {
+    let next = -1;
+    let match = "";
+    for (const secret of candidates) {
+      const index = text.indexOf(secret, offset);
+      if (index !== -1 && (next === -1 || index < next)) {
+        next = index;
+        match = secret;
+      }
+    }
+    if (next === -1) return result + text.slice(offset);
+    result += text.slice(offset, next) + marker;
+    offset = next + match.length;
+  }
+  return result;
 }

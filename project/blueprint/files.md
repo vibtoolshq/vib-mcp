@@ -19,7 +19,7 @@ Every file in the repository, where it lives, and what it is for.
 | File | Purpose |
 | ---- | ------- |
 | `src/types.ts` | Shared type definitions only (see `modules.md`). |
-| `src/config.ts` | Config/env/secrets: path resolution, `servers.json` read/write/validation, `.env` parsing, `${VAR}` interpolation, `maskSecrets`. |
+| `src/config.ts` | Config/env/secrets: path resolution, `servers.json` read/write/validation, `.env` parsing, `${VAR}` interpolation, pre-validation `collectConfigSecrets`, encoded secret variants and `maskSecrets`. |
 | `src/client.ts` | MCP SDK layer: transport creation, connect+timeout wrapper, ping/list/describe/call, output truncation. |
 | `src/cli.ts` | Entry point: arg parsing, command dispatch, output formatting, exit codes. |
 
@@ -63,3 +63,14 @@ Scratch planning and phase logs written before/during changes. Initial freeze no
 ## `docs/` — end-user documentation (see `docs/MANIFEST.md`)
 
 A-Z user guides: how to install, configure, and use every command.
+
+## SEC-01/A01 candidate QA files
+
+| Path | Purpose |
+| --- | --- |
+| `.github/workflows/sec01-ci.yml` | Candidate-only four-job security CI. |
+| `tests/security/sec01.test.mjs` | Twenty synthetic security acceptance gates. |
+| `tests/security/mock-security.mjs` | Harmless stdio fixture with synthetic output and environment probes. |
+| `tests/security/preflight.mjs` | Parent/tree and approved scope verification. |
+| `notes/SEC-01.md` | Scope and recovery log. |
+| `project/SEC-01-EVIDENCE.md` | Security acceptance evidence. |

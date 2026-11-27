@@ -7,5 +7,6 @@ a note is added, renamed, or completed.
 | ---- | -------------- | ----------- |
 | `2026-11-27-baseline-01.md` | BASELINE-01 / documentation freeze | Scope, audit results, publication gates and next-phase pointer. |
 | `BASELINE-QA-01.md` | BASELINE-QA-01 / candidate | Approved scope and CI evidence checkpoint. |
+| `SEC-01.md` | SEC-01 / A01 candidate | Scope, recovery and security acceptance. |
 | `README.md` | Active | Notes purpose and rules. |
 | `MANIFEST.md` | Active | This index. |

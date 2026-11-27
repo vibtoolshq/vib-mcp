@@ -23,3 +23,5 @@ piece is needed, and how everything connects.
 - Record the date of the last verification for each file.
 
 See `MANIFEST.md` for the index.
+
+SEC-01/A01 candidate: security-context collection, structured redaction and stdio environment/stderr boundaries are described in the module, function and flow maps. Runtime acceptance is tracked in [SEC-01 evidence](../SEC-01-EVIDENCE.md).

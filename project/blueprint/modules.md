@@ -21,7 +21,7 @@ the codebase. No runtime code, no imports from other project modules.
 
 **Used by:** `config.ts`, `client.ts`, `cli.ts` (type imports only).
 
-## `src/config.ts` — configuration, env, secrets (358 lines)
+## `src/config.ts` — configuration, env, secrets
 
 **Responsibility:** Everything about reading, validating, writing, and
 resolving configuration and secrets. It is the only module that touches
@@ -38,7 +38,7 @@ resolving configuration and secrets. It is the only module that touches
 | `loadConfig(custom?, serverName?)` | Full pipeline: resolve paths → read file → parse env → interpolate headers/env for all (or one) server → return `ResolvedConfig` with secret list. |
 | `saveServer(name, config, custom?)` | Validates and upserts a server into `servers.json` (used by `add`). |
 | `removeServer(name, custom?)` | Removes a server; returns `false` if absent (used by `remove`). |
-| `maskSecrets(text, secrets)` | Replaces every known secret (length ≥ 4, longest first) with `***REDACTED***`. |
+| `maskSecrets(text, secrets)` | Masks nonempty known credentials, longest first at the same offset, with a safe marker. |
 
 **Internal helpers:** `isRecord`, `isStringRecord`, `validateTimeout`,
 `validateServerConfig`, `parseServersFile`, `readServersFile`,
@@ -46,7 +46,7 @@ resolving configuration and secrets. It is the only module that touches
 
 **Used by:** `cli.ts` (all config needs), `client.ts` (`maskSecrets` only).
 
-## `src/client.ts` — MCP protocol operations (202 lines)
+## `src/client.ts` — MCP protocol operations
 
 **Responsibility:** All MCP SDK interaction. Creates transports, connects a
 `Client`, runs `ping`/`listTools`/`callTool`, applies timeouts, and masks
@@ -56,7 +56,7 @@ secrets in errors.
 
 | Function | What it does |
 | -------- | ------------ |
-| `createTransport(serverConfig)` | Maps config type to SDK transport: `stdio` → `StdioClientTransport` (env merged over `process.env`), `http` → `StreamableHTTPClientTransport`, `sse` → `SSEClientTransport`. Headers passed via `requestInit`. |
+| `createTransport(serverConfig)` | Maps config type to SDK transport: `stdio` → `StdioClientTransport` (SDK platform defaults plus explicit configured env; Windows canonical keys; child stderr ignored), `http` → `StreamableHTTPClientTransport`, `sse` → `SSEClientTransport`. Headers passed via `requestInit`. |
 | `withMcpClient(config, timeoutMs, secrets, fn)` | Connects a `Client` (`vib-mcp-client@1.0.0`), runs `fn` under `withTimeout` (per-server `timeout` overrides global), masks secrets in thrown errors, always closes client/transport. |
 | `pingServer(...)` | Health check: tries `client.ping`, falls back to `listTools` on `-32601` method-not-found; returns `{ ok, latencyMs, serverInfo }`. |
 | `listServerTools(...)` | Returns `[{ name, description }]` for each tool. |
@@ -68,7 +68,7 @@ secrets in errors.
 
 **Used by:** `cli.ts` only.
 
-## `src/cli.ts` — command-line interface (582 lines)
+## `src/cli.ts` — command-line interface
 
 **Responsibility:** `process.argv` parsing, command dispatch, output
 formatting (text/`--json`), secret masking of all output, and exit codes.
@@ -80,9 +80,9 @@ Entry point of the bundle.
 | -------- | ------------ |
 | `parseGlobalArguments(args)` | Extracts `--json`, `--max-chars`/`=` , `--timeout`/`=`, `--config`/`=`; rest become positionals. |
 | `parseAddArguments(args)` | Parses `add` flags `--type http\|sse` (default `http`) and `--token-env VAR` (validated env-var name). |
-| `configuredSecrets(config)` | Union of interpolated secrets + all literal header/env values for masking. |
+| `configuredSecrets(config)` | Union of pre-validation context, interpolated values and configured header/env values. |
 | `safeTarget(server)` | Renders a safe endpoint string: stdio → command; remote → URL with credentials stripped and token-like query params redacted. |
-| `writeJson` / `writeError` | JSON output to stdout/stderr with secrets masked. |
+| `writeJson` / `writeError` | Structure-aware sanitization before serialization; plain errors are masked before writing. |
 | `loadConfigured` / `getServer` | Load interpolated config; resolve a named server or throw with available names. |
 | `extractToolText(result)` | Pulls text blocks from MCP result `content`, falls back to `structuredContent`/raw JSON. |
 | `runCommand(command, args, context)` | Dispatch for `servers`, `add`, `remove`, `list`, `describe`, `call`, `ping`. |
@@ -118,3 +118,5 @@ client.ts ──imports──> config.ts (maskSecrets), types.ts, @modelcontextp
 config.ts ──imports──> types.ts, node builtins only
 build.mjs ──bundles──> src/cli.ts (+ sdk) → dist/.vib-mcp/vib-mcp.mjs
 ```
+
+SEC-01 candidate helpers: `collectConfigSecrets` scans sibling env values and raw valid config before validation; `addSecret` and `collectUrlSecrets` register known variants; `sanitizeJson` preserves fixed schema/envelope keys and primitive types, masks dynamic data and rejects key collisions. Known credential redaction is not arbitrary secret detection. Stdio uses SDK default merging, explicit overrides and suppressed child stderr; not an OS sandbox.

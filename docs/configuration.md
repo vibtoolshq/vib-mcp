@@ -56,9 +56,8 @@ that require the legacy SSE transport.
 
 - Required: `command` (non-empty string).
 - Optional: `args` (string array), `env` (string→string map), `timeout`.
-- Uses `StdioClientTransport`. `env` values may contain `${VAR}`
-  interpolations. At spawn time the server env is `process.env` overlaid with
-  the configured `env` (configured values win; non-string entries dropped).
+- Uses `StdioClientTransport`. `env` values may contain `${VAR}` interpolations. At spawn time only the SDK platform default environment plus explicitly configured `env` values are forwarded; explicit values win. Windows keys are normalized case-insensitively. Raw child stderr is suppressed.
+- Explicitly configure any additional variables the trusted child requires. This reduces environment exposure but is not an OS sandbox; only run trusted stdio commands/configurations.
 
 ### `${VAR}` interpolation
 

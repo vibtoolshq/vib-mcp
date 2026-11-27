@@ -25,3 +25,5 @@ every feature — what each thing is for, why, where, when, and how.
 - Do not include secrets, tokens, or real `.env` values.
 
 See `MANIFEST.md` for the index.
+
+SEC-01 candidate security boundaries: see `configuration.md` for explicit stdio environment forwarding and `cli-commands.md` for known-credential redaction. Runtime evidence: [SEC-01](../project/SEC-01-EVIDENCE.md).

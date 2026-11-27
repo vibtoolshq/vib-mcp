@@ -8,6 +8,9 @@ import {
   truncateText,
 } from "./client.js";
 import {
+  addSecret,
+  collectConfigSecrets,
+  collectUrlSecrets,
   loadConfig,
   loadServerDefinitions,
   maskSecrets,
@@ -62,6 +65,7 @@ interface AddArguments {
 interface RuntimeContext {
   options: GlobalOptions;
   secrets: string[];
+  securityReady: boolean;
 }
 
 function parsePositiveInteger(
@@ -192,12 +196,12 @@ function parseAddArguments(args: string[]): AddArguments {
   };
 }
 
-function configuredSecrets(config: ResolvedConfig): string[] {
-  const secrets = new Set(config.secrets);
+function configuredSecrets(config: ResolvedConfig, existing: string[]): string[] {
+  const secrets = new Set([...existing, ...config.secrets]);
   for (const server of Object.values(config.servers)) {
     const values = server.type === "stdio" ? server.env : server.headers;
     for (const value of Object.values(values ?? {})) {
-      secrets.add(value);
+      addSecret(secrets, value);
     }
   }
   return [...secrets];
@@ -214,7 +218,7 @@ function safeTarget(server: ServerConfig): string {
     target.password = "";
     target.hash = "";
     for (const key of [...target.searchParams.keys()]) {
-      if (/token|secret|key|auth|password|credential/i.test(key)) {
+      if (/token|secret|key|auth|password|credential|signature|session/i.test(key)) {
         target.searchParams.set(key, "***REDACTED***");
       }
     }
@@ -224,19 +228,59 @@ function safeTarget(server: ServerConfig): string {
   }
 }
 
+// The CLI envelope and JSON Schema vocabulary are structural, not user data.
+// Dynamic keys, including keys in schema property maps, are sanitized.
+const fixedKeys = new Set([
+  "ok", "error", "output", "truncated", "originalLength", "name", "description",
+  "type", "target", "auth", "configPath", "tokenEnv", "reminder", "removed",
+  "server", "latencyMs", "serverInfo", "version", "inputSchema", "outputSchema",
+  "title", "annotations", "icons", "_meta", "execution", "content", "isError",
+  "structuredContent", "$schema", "$id", "$ref", "$defs", "$comment",
+  "properties", "patternProperties", "definitions", "dependentSchemas",
+  "dependentRequired", "required", "additionalProperties", "items", "prefixItems",
+  "enum", "const", "default", "examples", "allOf", "anyOf", "oneOf", "not",
+  "if", "then", "else", "format", "pattern", "minimum", "maximum",
+  "exclusiveMinimum", "exclusiveMaximum", "multipleOf", "minLength", "maxLength",
+  "minItems", "maxItems", "uniqueItems", "minProperties", "maxProperties",
+  "readOnly", "writeOnly", "deprecated", "contains", "propertyNames",
+  "additionalItems", "unevaluatedProperties", "unevaluatedItems",
+  "minContains", "maxContains", "text", "data", "mimeType", "uri", "resource",
+]);
+const dynamicMaps = new Set(["properties", "patternProperties", "$defs", "definitions", "dependentSchemas", "dependentRequired"]);
+
+function sanitizeJson(value: unknown, secrets: string[], mode: "contract" | "data" | "map" = "contract"): unknown {
+  if (typeof value === "string") return maskSecrets(value, secrets);
+  if (Array.isArray(value)) return value.map((item) => sanitizeJson(item, secrets, mode));
+  if (value === null || typeof value !== "object") return value;
+  const entries: [string, unknown][] = [];
+  const seen = new Set<string>();
+  for (const [key, item] of Object.entries(value)) {
+    const fixed = mode === "contract" && fixedKeys.has(key);
+    const safeKey = fixed ? key : maskSecrets(key, secrets);
+    if (seen.has(safeKey)) throw new Error("Cannot safely redact JSON keys without a collision.");
+    seen.add(safeKey);
+    const next = mode === "data" || key === "structuredContent" || key === "_meta" || key === "default" || key === "examples" || key === "enum" || key === "const"
+      ? "data"
+      : mode === "map" ? "contract" : dynamicMaps.has(key) ? "map" : "contract";
+    entries.push([safeKey, sanitizeJson(item, secrets, next)]);
+  }
+  return Object.fromEntries(entries);
+}
+
 function writeJson(
   value: unknown,
   secrets: string[],
   stream: NodeJS.WriteStream = process.stdout,
+  pretty = false,
 ): void {
-  const serialized = JSON.stringify(value);
-  stream.write(`${maskSecrets(serialized, secrets)}\n`);
+  const serialized = JSON.stringify(sanitizeJson(value, secrets), null, pretty ? 2 : undefined);
+  stream.write(serialized + "\n");
 }
 
 function writeError(message: string, json: boolean, secrets: string[]): void {
   const safeMessage = maskSecrets(message, secrets);
   if (json) {
-    writeJson({ error: safeMessage }, secrets, process.stderr);
+    writeJson({ error: safeMessage }, [], process.stderr);
   } else {
     process.stderr.write(`${safeMessage}\n`);
   }
@@ -247,7 +291,7 @@ function loadConfigured(
   serverName?: string,
 ): ResolvedConfig {
   const config = loadConfig(context.options.configPath, serverName);
-  context.secrets = configuredSecrets(config);
+  context.secrets = configuredSecrets(config, context.secrets);
   return config;
 }
 
@@ -274,6 +318,7 @@ function requireNoOptions(args: string[]): void {
 
 function extractToolText(
   result: Awaited<ReturnType<typeof callServerTool>>,
+  secrets: string[],
 ): string {
   const toolResult = result as unknown as {
     content?: unknown;
@@ -293,12 +338,12 @@ function extractToolText(
     }
   }
   if (textBlocks.length > 0) {
-    return textBlocks.join("\n");
+    return maskSecrets(textBlocks.join("\n"), secrets);
   }
   if (toolResult.structuredContent !== undefined) {
-    return JSON.stringify(toolResult.structuredContent, null, 2) ?? "";
+    return JSON.stringify(sanitizeJson(toolResult.structuredContent, secrets, "data"), null, 2) ?? "";
   }
-  return JSON.stringify(toolResult.content ?? result, null, 2) ?? "";
+  return JSON.stringify(sanitizeJson(toolResult.content ?? result, secrets), null, 2) ?? "";
 }
 
 async function runCommand(
@@ -347,6 +392,10 @@ async function runCommand(
       throw new UsageError("URL must use the HTTP or HTTPS protocol.");
     }
 
+    const addSecrets = new Set(context.secrets);
+    collectUrlSecrets(add.url, addSecrets);
+    if (add.tokenEnv && process.env[add.tokenEnv]) addSecret(addSecrets, process.env[add.tokenEnv]!);
+    context.secrets = [...addSecrets];
     const serverConfig: ServerConfig = {
       type: add.type,
       url: add.url,
@@ -391,7 +440,7 @@ async function runCommand(
     if (options.json) {
       writeJson({ ok: true, removed: name }, secrets);
     } else {
-      process.stdout.write(`Server "${name}" removed.\n`);
+      process.stdout.write(maskSecrets(`Server "${name}" removed.`, context.secrets) + "\n");
     }
     return;
   }
@@ -440,9 +489,7 @@ async function runCommand(
       options.timeout,
       context.secrets,
     );
-    process.stdout.write(
-      `${maskSecrets(JSON.stringify(tool, null, 2), context.secrets)}\n`,
-    );
+    writeJson(tool, context.secrets, process.stdout, true);
     return;
   }
 
@@ -479,7 +526,7 @@ async function runCommand(
       options.timeout,
       context.secrets,
     );
-    const output = maskSecrets(extractToolText(result), context.secrets);
+    const output = extractToolText(result, context.secrets);
     const truncated = truncateText(output, options.maxChars);
 
     if (result.isError) {
@@ -490,7 +537,8 @@ async function runCommand(
             truncated: truncated.truncated,
             originalLength: truncated.originalLength,
           },
-          context.secrets,
+          [], // Tool output already sanitized before truncation.
+
           process.stderr,
         );
       } else {
@@ -507,7 +555,8 @@ async function runCommand(
           truncated: truncated.truncated,
           originalLength: truncated.originalLength,
         },
-        context.secrets,
+        [], // Tool output already sanitized before truncation.
+
       );
     } else {
       process.stdout.write(`${truncated.text}\n`);
@@ -559,11 +608,14 @@ async function main(): Promise<void> {
       timeout: DEFAULT_TIMEOUT_MS,
     },
     secrets: [],
+    securityReady: false,
   };
 
   try {
     const parsed = parseGlobalArguments(args);
     context.options = parsed.options;
+    context.secrets = collectConfigSecrets(context.options.configPath);
+    context.securityReady = true;
     const [command, ...commandArgs] = parsed.positionals;
     if (!command) {
       throw new UsageError(`Missing command.\n\n${HELP_TEXT}`);
@@ -571,7 +623,9 @@ async function main(): Promise<void> {
     await runCommand(command, commandArgs, context);
   } catch (error) {
     writeError(
-      error instanceof Error ? error.message : String(error),
+      context.securityReady || error instanceof UsageError
+        ? (error instanceof Error ? error.message : String(error))
+        : "Unable to initialize configuration security context.",
       context.options.json,
       context.secrets,
     );

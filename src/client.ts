@@ -1,22 +1,32 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { StdioClientTransport, getDefaultEnvironment } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { maskSecrets } from "./config.js";
 import type { ServerConfig } from "./types.js";
 
 export function createTransport(serverConfig: ServerConfig) {
   if (serverConfig.type === "stdio") {
-    const env = Object.fromEntries(
-      Object.entries({ ...process.env, ...(serverConfig.env ?? {}) }).filter(
-        (entry): entry is [string, string] => typeof entry[1] === "string",
-      ),
-    );
+    // SDK also merges its own default environment. Start from that exact
+    // platform allowlist and overlay only explicitly configured values.
+    const env = getDefaultEnvironment();
+    for (const [key, value] of Object.entries(serverConfig.env ?? {})) {
+      if (process.platform === "win32") {
+        for (const inherited of Object.keys(env)) {
+          if (inherited.toUpperCase() === key.toUpperCase()) delete env[inherited];
+        }
+        env[key.toUpperCase()] = value;
+      } else {
+        env[key] = value;
+      }
+    }
 
     return new StdioClientTransport({
       command: serverConfig.command,
       args: serverConfig.args ?? [],
       env,
+      // Untrusted child diagnostics must never bypass CLI redaction or JSON output.
+      stderr: "ignore",
     });
   }
 

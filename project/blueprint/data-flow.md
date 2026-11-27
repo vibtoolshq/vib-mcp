@@ -1,6 +1,6 @@
 # Data Flow
 
-How one CLI invocation travels through the code, verified 2026-11-26.
+How one CLI invocation travels through the code, reviewed 2026-11-27 (SEC-01 candidate).
 
 ## Startup
 
@@ -10,6 +10,7 @@ node .vib-mcp/vib-mcp.mjs <args>
   → -h/--help → print HELP_TEXT, exit 0
   → -v/--version → print VERSION (1.0.0), exit 0
   → parseGlobalArguments → { options: GlobalOptions, positionals }
+  → collectConfigSecrets(configPath)           // before validation
   → runCommand(command, commandArgs, context)
 ```
 
@@ -50,20 +51,19 @@ listServerTools / describeServerTool / callServerTool / pingServer
 ## Output
 
 - Text mode: human-readable lines to stdout; tool errors → stderr + exit 1.
-- `--json`: `writeJson` → masked `JSON.stringify` to stdout (or stderr for
+- `--json`: `writeJson` → structure-aware sanitization → `JSON.stringify` to stdout (or stderr for
   `call` tool errors).
-- `call` output passes through `extractToolText` → `truncateText(maxChars)`
+- `call` output passes through sanitized `extractToolText` → `truncateText(maxChars)`
   (default 8000; `0` disables; truncation adds a notice).
 - `servers` masks each line via `safeTarget` + `maskSecrets`.
 
 ## Secrets lifecycle
 
-1. `interpolateEnv` collects every resolved `${VAR}` value into a Set.
-2. `configuredSecrets` unions those with all literal header/env values.
-3. Every output path (`writeJson`, `writeError`, direct `process.stdout`
-   writes, `withMcpClient` errors) runs text through `maskSecrets`.
-4. `safeTarget` additionally strips URL credentials and redacts
-   token-like query params for the `servers` listing.
+1. Collect known values from sibling env and parsed config before validation; resolve references without stopping on a missing sibling value.
+2. `configuredSecrets` unions that context with resolved and literal header/env variants.
+3. Mask text and errors; sanitize JSON values and dynamic keys before serialization. Fixed contract keys and primitive types stay intact; collisions fail closed.
+4. `safeTarget` strips userinfo and sensitive query values; known path credentials are masked.
+5. Stdio inherits SDK platform defaults plus explicit env only; raw child stderr is suppressed. This is not a process sandbox.
 
 ## Build flow
 
