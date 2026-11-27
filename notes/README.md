@@ -29,3 +29,5 @@ for notes, planning, and markdown written while developing.
 Start with [BASELINE-01 phase note](2026-11-27-baseline-01.md) for the initial freeze plan and evidence boundaries; the authoritative baseline is [project/BASELINE.md](../project/BASELINE.md).
 
 See `MANIFEST.md` for the list of notes in this folder.
+
+Current candidate phase: [BASELINE-QA-01](BASELINE-QA-01.md) (scope and evidence only; not an accepted main baseline).

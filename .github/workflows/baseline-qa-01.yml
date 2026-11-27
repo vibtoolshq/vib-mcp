@@ -1,0 +1,61 @@
+name: BASELINE-QA-01
+on:
+  push:
+    branches: ['qa/baseline-qa-01']
+    paths: ['.github/workflows/baseline-qa-01.yml', 'tests/baseline/**']
+permissions:
+  contents: read
+jobs:
+  baseline:
+    name: QA (${{ matrix.os }}, Node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: ['20', '22']
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ matrix.node }}
+      - name: QA-01/02 candidate integrity
+        id: preflight
+        run: node tests/baseline/helpers.mjs preflight
+      - name: QA-03 toolchain evidence
+        run: |
+          node -p "JSON.stringify({os:process.platform,arch:process.arch,node:process.version})"
+          npm --version
+          git --version
+      - name: QA-04 frozen installation
+        id: install
+        run: npm ci --no-audit --no-fund
+      - name: QA-05 typecheck
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run typecheck
+      - name: QA-06 production bundle staging
+        id: build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run build
+      - name: QA-07/29 exact staging files
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: node tests/baseline/helpers.mjs stage
+      - name: QA-08–27 synthetic acceptance
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: node --test --test-concurrency=1 tests/baseline/cli.test.mjs tests/baseline/config.test.mjs tests/baseline/transport.test.mjs tests/baseline/security.test.mjs
+      - name: QA-28 runtime advisory audit
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && matrix.os == 'ubuntu-latest' && matrix.node == '22' }}
+        run: node tests/baseline/helpers.mjs audit runtime
+      - name: QA-28 full advisory audit
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && matrix.os == 'ubuntu-latest' && matrix.node == '22' }}
+        run: node tests/baseline/helpers.mjs audit full
+      - name: QA-30 tracked integrity
+        if: ${{ !cancelled() && steps.preflight.outcome == 'success' }}
+        run: node tests/baseline/helpers.mjs integrity
