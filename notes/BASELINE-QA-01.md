@@ -18,3 +18,7 @@ Exact writable paths (13):
 - project/MANIFEST.md
 
 All other files read-only. One candidate-only push-triggered workflow (Linux/Windows, Node 20/22); no automatic rerun, no main merge or backup sync. Test only synthetic loopback and stdio fixtures, no real secrets/live calls, no new dependencies, no source fixes. No production changes, release, tag or publish. Preserve all failures and evidence; stop on baseline drift, unauthorized changes or infrastructure blocker. Evidence-only Markdown follow-up must not trigger CI. See project/BASELINE-QA-01-EVIDENCE.md. Production NO-GO.
+
+## CI terminal checkpoint — 2026-11-27
+
+Candidate bf9c3ec8a83f005eabce785c34cb61a0f666058c, tree a384d01232975b508bd885298b75bcb719acb206. Run [45928147183](https://github.com/vibtoolshq/vib-mcp/actions/runs/45928147183), attempt 1 completed failure. Four jobs each 18 pass / 14 fail; 72 pass / 56 fail across 128 executions. Install/typecheck/build/stage/tracked integrity PASS all four; representative Linux22 advisory audits both exit 0, zero reported advisories. Eight findings F-01–08 reproduced. No source fix, assertion weakening or rerun. QA_EVIDENCE_COMPLETE for implemented checks, QA_EVIDENCE_PARTIAL for wider unmeasured subcases; RUNTIME_ACCEPTANCE_FAIL; production NO-GO. See detailed evidence report. Evidence-only commit must preserve tested code and not trigger CI. No main merge/backup sync. Next proposed SEC-01, separate approval required.
