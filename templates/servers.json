@@ -1,0 +1,20 @@
+{
+  "servers": {
+    "private-vps": {
+      "type": "http",
+      "url": "https://mcp.example.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${VPS_MCP_TOKEN}"
+      }
+    },
+    "public": {
+      "type": "http",
+      "url": "https://public.example.com/mcp"
+    },
+    "local-files": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]
+    }
+  }
+}
