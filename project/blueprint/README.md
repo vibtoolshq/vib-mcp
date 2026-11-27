@@ -25,3 +25,5 @@ piece is needed, and how everything connects.
 See `MANIFEST.md` for the index.
 
 SEC-01/A01 candidate: security-context collection, structured redaction and stdio environment/stderr boundaries are described in the module, function and flow maps. Runtime acceptance is tracked in [SEC-01 evidence](../SEC-01-EVIDENCE.md).
+
+LIFE-01 candidate: effective timeout, connect/operation cancellation and bounded cleanup are described in the module, function and flow maps. Runtime acceptance: [LIFE-01 evidence](../LIFE-01-EVIDENCE.md).

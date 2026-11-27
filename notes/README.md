@@ -30,4 +30,4 @@ Start with [BASELINE-01 phase note](2026-11-27-baseline-01.md) for the initial f
 
 See `MANIFEST.md` for the list of notes in this folder.
 
-Previous candidate: [BASELINE-QA-01](BASELINE-QA-01.md). Current candidate: [SEC-01 / A01](SEC-01.md); not an accepted main baseline.
+Previous candidate: [BASELINE-QA-01](BASELINE-QA-01.md). Accepted targeted security: [SEC-01 / A01](SEC-01.md) (owner reconciliation in [LIFE-01](LIFE-01.md)). Current candidate: [LIFE-01](LIFE-01.md); not an accepted main baseline.

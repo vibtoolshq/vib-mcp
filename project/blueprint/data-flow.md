@@ -1,6 +1,6 @@
 # Data Flow
 
-How one CLI invocation travels through the code, reviewed 2026-11-27 (SEC-01 candidate).
+How one CLI invocation travels through the code, reviewed 2026-11-27 (LIFE-01 candidate).
 
 ## Startup
 
@@ -42,10 +42,11 @@ listServerTools / describeServerTool / callServerTool / pingServer
   → withMcpClient(serverConfig, timeoutMs, secrets, fn)
       → createTransport(config)                // stdio | http | sse → SDK transport
       → new Client({ name: "vib-mcp-client", version: "1.0.0" })
-      → withTimeout(client.connect(transport), serverConfig.timeout ?? globalTimeout)
-      → withTimeout(fn(client), same timeout)
+      → effective = serverConfig.timeout ?? globalTimeout
+      → withTimeout(options => client.connect(transport, options), effective)
+      → withTimeout(options => fn(client, options), effective) // shared operation signal for fallback
       → on error: throw maskSecrets(message, secrets)
-      → finally: client.close() (transport.close() fallback)
+      → finally: closeBounded(client.close, transport.close) // total 5000 ms; report failure
 ```
 
 ## Output
@@ -75,3 +76,5 @@ npm run build → node build.mjs
   → copy templates/servers.json, templates/.env.example
   → print bundle size
 ```
+
+LIFE-01: the phase timer aborts the public SDK signal and is cleared on settlement. Transport shutdown also handles start/notification I/O not covered by request options. A primary operation error remains primary, with a masked cleanup diagnostic appended when cleanup is unconfirmed. Separate connect and operation deadlines are not an end-to-end deadline.

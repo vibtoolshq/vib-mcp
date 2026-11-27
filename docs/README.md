@@ -27,3 +27,5 @@ every feature — what each thing is for, why, where, when, and how.
 See `MANIFEST.md` for the index.
 
 SEC-01 candidate security boundaries: see `configuration.md` for explicit stdio environment forwarding and `cli-commands.md` for known-credential redaction. Runtime evidence: [SEC-01](../project/SEC-01-EVIDENCE.md).
+
+LIFE-01 candidate timeout and bounded lifecycle behavior: see `cli-commands.md` and `configuration.md`; runtime acceptance in [LIFE-01 evidence](../project/LIFE-01-EVIDENCE.md).

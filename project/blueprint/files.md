@@ -20,7 +20,7 @@ Every file in the repository, where it lives, and what it is for.
 | ---- | ------- |
 | `src/types.ts` | Shared type definitions only (see `modules.md`). |
 | `src/config.ts` | Config/env/secrets: path resolution, `servers.json` read/write/validation, `.env` parsing, `${VAR}` interpolation, pre-validation `collectConfigSecrets`, encoded secret variants and `maskSecrets`. |
-| `src/client.ts` | MCP SDK layer: transport creation, connect+timeout wrapper, ping/list/describe/call, output truncation. |
+| `src/client.ts` | MCP SDK layer: transport creation, effective timeout, abort-aware phase deadlines and bounded close, ping/list/describe/call, output truncation. |
 | `src/cli.ts` | Entry point: arg parsing, command dispatch, output formatting, exit codes. |
 
 ## `templates/` — portable config templates
@@ -74,3 +74,14 @@ A-Z user guides: how to install, configure, and use every command.
 | `tests/security/preflight.mjs` | Parent/tree and approved scope verification. |
 | `notes/SEC-01.md` | Scope and recovery log. |
 | `project/SEC-01-EVIDENCE.md` | Security acceptance evidence. |
+
+## LIFE-01 candidate QA files
+
+| Path | Purpose |
+| --- | --- |
+| `.github/workflows/life01-ci.yml` | One four-job candidate-only CI. |
+| `tests/lifecycle/life01.test.mjs` | Sixteen lifecycle acceptance cases. |
+| `tests/lifecycle/mock-lifecycle.mjs` | Loopback HTTP/SSE, owned stdio and close-fault fixtures. |
+| `tests/lifecycle/preflight.mjs` | Exact 21-path and parent/tree guard. |
+| `notes/LIFE-01.md` | Scope, SEC-01 owner acceptance and lifecycle checkpoint. |
+| `project/LIFE-01-EVIDENCE.md` | F-04 evidence and remaining findings. |

@@ -114,3 +114,7 @@ still resolves next to it.
 
 `templates/.env.example` is copied into builds as `.env.example` — a
 placeholder template only; real values never ship.
+
+### Lifecycle deadlines (LIFE-01 candidate)
+
+Per-server `timeout` takes precedence over the global setting for SDK request options and phase deadlines. Connect and operation each receive their own budget. Ping fallback shares the operation budget. Bounded client close and transport fallback have a separate maximum 5000 ms cleanup budget. Existing input validation is unchanged (F-07 remains open). The stdio environment and stderr boundary remains unchanged. This does not guarantee cancellation of remote side effects or arbitrary child descendants.

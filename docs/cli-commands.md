@@ -1,6 +1,6 @@
 # CLI Commands Reference
 
-Verified against `src/cli.ts` and `project/SPEC.md` on 2026-11-27 (SEC-01 candidate static review; see project evidence for runtime acceptance).
+Verified against `src/cli.ts` and `project/SPEC.md` on 2026-11-27 (LIFE-01 candidate static review; see project evidence for runtime acceptance).
 
 Invoke the portable client as:
 
@@ -105,3 +105,7 @@ Internally tries `client.ping` first; if the server returns JSON-RPC `-32601`
 - Tool output is sanitized before truncation. Unknown remote secrets or credentials embedded in arbitrary arguments cannot be inferred reliably; do not put secrets in command arguments or arbitrary URL paths.
 - Stdio child stderr is suppressed so raw diagnostics cannot bypass the CLI output boundary.
 - `add --token-env` stores only the variable name.
+
+### Timeout and cleanup (LIFE-01 candidate)
+
+`--timeout` is the default for each connect/initialization and operation phase, not the entire CLI process. The server override takes precedence for both the SDK and wrapper. Ping fallback shares the operation deadline. Cancellation is requested on expiry; local transport cleanup is attempted within a separate maximum 5000 ms budget. Cleanup failure is a runtime error; remote cancellation is cooperative. Process startup and shutdown add overhead. See project/LIFE-01-EVIDENCE.md for actual acceptance.

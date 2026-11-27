@@ -32,10 +32,12 @@ Type-only module — no functions.
 | Function | Defined | Called by | Purpose |
 | -------- | ------- | --------- | ------- |
 | `createTransport` | client.ts (symbol) | `withMcpClient` | Maps `ServerConfig` to SDK transport; stdio platform defaults plus explicit env and stderr suppression. |
-| `withTimeout` | client.ts (symbol) | `withMcpClient` | `Promise.race` against a timer; rejects `MCP operation timed out after N ms`. |
+| `withTimeout` | client.ts (symbol) | `withMcpClient` | Phase deadline races against work, aborts SDK request signal on timeout, clears timer on completion. |
+| `LifecycleClient.close` | client.ts (symbol) | SDK and cleanup | Join one public SDK close promise, observe rejected auto-close. |
+| `closeBounded` | client.ts (symbol) | `withMcpClient` | Bound client close and remaining-budget transport fallback; uncertain cleanup is error. |
 | `errorMessage` | client.ts (symbol) | `withMcpClient` | `Error.message` or `String(error)`. |
 | `isMethodNotFound` | client.ts (symbol) | `pingServer` | Detects JSON-RPC `-32601`. |
-| `withMcpClient` | client.ts (symbol) | `pingServer`, `listServerTools`, `describeServerTool`, `callServerTool` | Connect → run `fn` under timeout → mask secrets on error → always close. |
+| `withMcpClient` | client.ts (symbol) | `pingServer`, `listServerTools`, `describeServerTool`, `callServerTool` | Resolve effective timeout → bounded connect → bounded operation → mask primary error → bounded cleanup, surface cleanup failure. |
 | `pingServer` | client.ts (symbol) | `cli.ts` `ping` | Health check; `client.ping` with `listTools` fallback; returns `{ ok, latencyMs, serverInfo }`. |
 | `listServerTools` | client.ts (symbol) | `cli.ts` `list` | `[{ name, description }]` per tool. |
 | `describeServerTool` | client.ts (symbol) | `cli.ts` `describe` | Full tool object by name; throws `Tool "X" not found on server.` |

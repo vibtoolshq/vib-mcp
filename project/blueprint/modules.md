@@ -57,14 +57,14 @@ secrets in errors.
 | Function | What it does |
 | -------- | ------------ |
 | `createTransport(serverConfig)` | Maps config type to SDK transport: `stdio` → `StdioClientTransport` (SDK platform defaults plus explicit configured env; Windows canonical keys; child stderr ignored), `http` → `StreamableHTTPClientTransport`, `sse` → `SSEClientTransport`. Headers passed via `requestInit`. |
-| `withMcpClient(config, timeoutMs, secrets, fn)` | Connects a `Client` (`vib-mcp-client@1.0.0`), runs `fn` under `withTimeout` (per-server `timeout` overrides global), masks secrets in thrown errors, always closes client/transport. |
+| `withMcpClient(config, timeoutMs, secrets, fn)` | Connects a `Client` (`vib-mcp-client@1.0.0`), runs connect and operation under separate abort-aware deadlines (server override wins for SDK and wrapper); preserves masked primary errors and attempts bounded client/transport cleanup. |
 | `pingServer(...)` | Health check: tries `client.ping`, falls back to `listTools` on `-32601` method-not-found; returns `{ ok, latencyMs, serverInfo }`. |
 | `listServerTools(...)` | Returns `[{ name, description }]` for each tool. |
 | `describeServerTool(...)` | Finds one tool by name in `listTools` result; returns the full tool object (schema included); throws if absent. |
 | `callServerTool(...)` | `client.callTool({ name, arguments })` under timeout. |
 | `truncateText(text, maxChars)` | Caps output at `maxChars` with a `... [truncated: ...]` notice; `maxChars <= 0` disables. |
 
-**Internal helpers:** `withTimeout`, `errorMessage`, `isMethodNotFound`.
+**Lifecycle helpers:** `withTimeout` (phase signal and timer), `LifecycleClient.close` (joins SDK-initiated close), `closeBounded` (5000 ms maximum cleanup budget, 90% client then remaining fallback), `errorMessage`, `isMethodNotFound`.
 
 **Used by:** `cli.ts` only.
 
@@ -120,3 +120,5 @@ build.mjs ──bundles──> src/cli.ts (+ sdk) → dist/.vib-mcp/vib-mcp.mjs
 ```
 
 SEC-01 candidate helpers: `collectConfigSecrets` scans sibling env values and raw valid config before validation; `addSecret` and `collectUrlSecrets` register known variants; `sanitizeJson` preserves fixed schema/envelope keys and primitive types, masks dynamic data and rejects key collisions. Known credential redaction is not arbitrary secret detection. Stdio uses SDK default merging, explicit overrides and suppressed child stderr; not an OS sandbox.
+
+LIFE-01 candidate retains existing transport configuration and SEC-01 security behavior. A timed-out first close followed by a successful direct close still reports unconfirmed completion. Cancellation cannot guarantee remote work stopped or arbitrary child descendants terminated.

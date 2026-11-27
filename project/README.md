@@ -12,6 +12,7 @@ contract, architecture blueprint, planning, feature details, and change logs.
 | `FORENSIC-FINDINGS.md` | Open static findings, unverified gates and proposed next phase. |
 | `BASELINE-QA-01-EVIDENCE.md` | Candidate isolated CI acceptance matrix and observed outcomes (not release sign-off). |
 | `SEC-01-EVIDENCE.md` | Security candidate changes, regression and acceptance evidence. |
+| `LIFE-01-EVIDENCE.md` | F-04 lifecycle candidate and acceptance; SEC-01 owner reconciliation in notes. |
 | `MISSION.md` | Project identity, mission, boundaries, workflow, and engineering guardrails. Read before architectural changes (mandatory per `AGENTS.md`). |
 | `SPEC.md` | The locked user-facing contract: configuration, CLI commands, flags, security, and exit codes. Read before any behavioral change (mandatory per `AGENTS.md`). |
 | `RELEASE.md` | Release folder structure, versioning rules, and the pre-release gate. Read before release-related work (mandatory per `AGENTS.md`). |
